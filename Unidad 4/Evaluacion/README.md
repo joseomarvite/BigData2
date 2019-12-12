@@ -1,4 +1,4 @@
-# Datos Masivos - Unidad 3
+# Datos Masivos - Proyecto Final
 
  - **Tecnológico Nacional de México**
  - **Instituto Tecnológico de Tijuana**
@@ -7,258 +7,464 @@
  - **Semestre**: AGOSTO- DICIEMBRE 2019
  - **Ingeniería en Tecnologías de la Información y Comunicaciones**
  - **Materia**: Datos Masivos
- - **Unidad**: 3
+ - **Unidad**: 4
  - **Nombre**: Vite Hernández José Omar
  - **No. Control**: 15211706
  - **Docente**: Dr. Jose Christian Romero Hernandez
 
 # Evaluación 
-**Examen 1**
 
 **Introducción**
+El presente documento es el resultado de una investigación sobre 3 diferentes tipos de aprendizaje automático en el rubro de la clasificación, estos algoritmos fueron desarrollados en el lenguaje de programación Scala con librerías (Machine Learning Library) de Spark en su versión 2.4.4
 
-En el presente documento se podrá observar el conocimiento y procedimiento que se realizó en la 1ra evaluación de la unidad 3, el cual fue programado en el lenguaje Scala y se utilizaron librerías de Machine Learning de Spark en 4.4
+**Marco teórico de los algoritmos**
 
-**Explicación**
+**Arbol de decision**
 
-KNN es un método de clasificación supervisada (Aprendizaje, estimación basada en un conjunto de entrenamiento y prototipos)
+Un árbol de decisión es una serie de nodos, un gráfico direccional que comienza en la base con un solo nodo y se extiende a los muchos nodos hoja que representan las categorías que el árbol puede clasificar. Otra forma de pensar en un árbol de decisión es como un diagrama de flujo, donde el flujo comienza en el nodo raíz y termina con una decisión tomada en las hojas. Es una herramienta de apoyo a la decisión. Utiliza un gráfico en forma de árbol para mostrar las predicciones que resultan de una serie de divisiones basadas en características.
 
-El algoritmo KNN asume que existen cosas similares en la proximidad. En otras palabras, cosas similares están cerca unas de otras, en otras palabras K-NN captura la idea de similitud (a veces llamada distancia, proximidad o cercanía).
+  
 
-Existen muchas fórmulas para calcular la distancia, y una podría ser preferible dependiendo del problema que se esté resolviendo. Sin embargo, la distancia en línea recta (también llamada distancia euclidiana) es una opción popular y familiar.
+Aquí hay algunos términos útiles para describir un árbol de decisión:
 
-**Algoritmo de KNN**
+  
 
-1.  Cargar los datos.
-2.  Inicializa K a tu número elegido de vecinos.
-3.  Para cada ejemplo en los datos.
-4.  Calcule la distancia entre el ejemplo de consulta y el ejemplo actual a partir de los datos.
-5.  Agregue la distancia y el índice del ejemplo a una colección ordenada.
-6.  Ordene la colección ordenada de distancias e índices de menor a mayor (en orden ascendente) por las distancias.
-7.  Elija las primeras K entradas de la colección ordenada.
-8.  Obtener las etiquetas de las entradas K seleccionadas.
-9.  Si es regresión, devuelve la media de las etiquetas K.
-10.  Si es clasificación, devuelve el modo de las etiquetas K
-    
-**Elegir el valor correcto para K**
+![](https://lh4.googleusercontent.com/Qi4hDEjS4eraihFa8XTij4m0X7oCO6MlheW7prKg0H4hL7UNftGoSpvb_1nIVrqkIDVe29K1DkB1f9NM287aWovSH0SNb3O-rY4X3scWYIgdL30QlwpGLH59k3pPEB-16rQbknLC)
 
-Para seleccionar la K adecuada para sus datos, ejecutamos el algoritmo KNN varias veces con diferentes valores de K y seleccionamos la K que reduce la cantidad de errores que encontramos al tiempo que mantenemos la capacidad del algoritmo para hacer predicciones con precisión cuando se le dan datos que no tienen.
+  
 
-Aquí hay algunas cosas a tener en cuenta:
--   A medida que disminuimos el valor de K a 1, nuestras predicciones se vuelven menos estables.
-   
--   Inversamente, a medida que aumentamos el valor de K, nuestras predicciones se vuelven más estables debido a la mayoría de votos / promedios, y por lo tanto, es más probable que hagan predicciones más precisas (hasta cierto punto). Con el tiempo, comenzamos a presenciar un número creciente de errores. Es en este punto que sabemos que hemos empujado el valor de K demasiado lejos.
-    
--   En los casos en que estamos tomando un voto mayoritario (por ejemplo, seleccionando el modo en un problema de clasificación) entre las etiquetas, generalmente hacemos de K un número impar para tener un desempate.
-    
- **Ventajas**
+ - **Nodo raíz**: un nodo raíz está al comienzo de un árbol. Representa a toda la población que se analiza. Desde el nodo raíz, la población
+   se divide de acuerdo con varias características, y esos subgrupos se
+   dividen a su vez en cada nodo de decisión debajo del nodo raíz.
 
-1.  El algoritmo es simple y fácil de implementar.
-2.  No hay necesidad de construir un modelo, ajustar varios parámetros o hacer suposiciones adicionales.
-3.  El algoritmo es versátil, puede usarse para clasificación, regresión y búsqueda.
-    
-**Desventajas**
+  
 
-1.  El algoritmo se vuelve significamente más lento a medida que aumenta el número de ejemplos y/o predictores / variables independientes.
+ - **División**: es un proceso de división de un nodo en dos o más subnodos.
 
-**Código comentado** 
+  
 
-```scala
-// 1. Se importa la sesion en Spark
-// 4. Se importa la libreria de Kmeans para el algoritmo
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.ml.clustering.KMeans
-import org.apache.spark.ml.feature.{VectorAssembler,StringIndexer,VectorIndexer,OneHotEncoder}
-// 7. Se importa Vector Assembler para el manejo de datos
-import org.apache.spark.ml.linalg.Vectors
-import org.apache.log4j._
-// 2. Se minimizan los errores
-Logger.getLogger("org").setLevel(Level.ERROR)
-// 3. Creamos la instancia de sesion en Spark
-val spark = SparkSession.builder().getOrCreate()
-// 5. Cargamos el dataset de Wholesale Customers Data
-val dataset = spark.read.option("header","true").option("inferSchema","true").csv("Wholesale-customers-data.csv")
-// 6. Seleccionamos las columnas que seran los datos "feature"
-val feature_data = dataset.select($"Fresh", $"Milk", $"Grocery", $"Frozen", $"Detergents_Paper", $"Delicassen")
-// 8. Se crea un nuevo objeto para las columnas de caractersiticas
-val assembler = new VectorAssembler().setInputCols(Array("Fresh", "Milk", "Grocery", "Frozen", "Detergents_Paper", "Delicassen")).setOutputCol("features")
-// 9. Se utiliza el objetivo "assembler" para transformar "feature_data"
-val traning = assembler.transform(feature_data)
-// 10. Se crea el modelo con K = 3
-val kmeans = new KMeans().setK(3).setSeed(1L)
-val model = kmeans.fit(traning)
-// Evaluamos el cluster calculando en los errores cuadraticos
-val WSSSE = model.computeCost(traning)
-println(s"Within Set Sum of Squared Errors = $WSSSE")
-//Resultado
-println("Cluster Centers: ")
-model.clusterCenters.foreach(println)
-```
+ - **Nodo de decisión**: cuando un subnodo se divide en subnodos adicionales, es un nodo de decisión.
 
-# Practicas
-**Practica 1**
+  
 
-**Introducción**
+ - **Nodo hoja o nodo terminal:** los nodos que no se dividen se denominan nodos hoja o terminal.
 
-En este presente documento se deriva de la explicación de diferentes clases en el Instituto Tecnológico de Tijuana de la materia Minería de Datos lo cual pude desarrollar mis habilidades y aplicar mis conocimientos aprendidos durante el periodo
+  
 
-**Explicación**
+ - **Poda**: la eliminación de los subnodos de un nodo primario se denomina poda. Un árbol se cultiva mediante la división y se contrae
+   mediante la poda.
+
+  
+
+ - **Rama o subárbol**: una subsección del árbol de decisión se denomina rama o subárbol, del mismo modo que una parte de un gráfico se
+   denomina subgrafo.
+
+  
+
+ - **Nodo padre y nodo hijo**: estos son términos relativos. Cualquier nodo que se encuentre debajo de otro nodo es un nodo secundario o
+   subnodo, y cualquier nodo que preceda a esos nodos secundarios se
+   llama nodo primario.
+
+  
+
+![](https://lh6.googleusercontent.com/pVMEyP0hFsBU2RS0NFCGj96Yab3mOyfoeI3164OE-Vt6bqOvSMY5u65p9basAyE5Ct2UzVWALtGvWfMfJbvD9rahlEZSk7Ru57hw1j9jv4X1CwrVhUppRa1WkZkSdesGtSuyGwgH)
+
+ 
+**Regresión Logística**
 
 La regresión logística resulta útil para los casos en los que se desea predecir la presencia o ausencia de una característica o resultado según los valores de un conjunto de predictores. Es similar a un modelo de regresión lineal pero está adaptado para modelos en los que la variable dependiente es dicotómica. Los coeficientes de regresión logística pueden utilizarse para estimar la odds ratio de cada variable independiente del modelo. La regresión logística se puede aplicar a un rango más amplio de situaciones de investigación que el análisis discriminante.
 
   
 
-Ejemplo. ¿Qué características del estilo de vida son factores de riesgo de enfermedad cardiovascular ? Dada una muestra de pacientes a los que se mide la situación de fumador, dieta, ejercicio, consumo de alcohol, y estado de enfermedad cardiovascular, se puede generar un modelo utilizando las cuatro variables de estilo de vida para predecir la presencia o ausencia de enfermedad cardiovascular en una muestra de pacientes. El modelo puede utilizarse posteriormente para derivar estimaciones de la odds ratio para cada uno de los factores y así indicarle, por ejemplo, cuánto más probable es que los fumadores desarrollen una enfermedad cardiovascular frente a los no fumadores.
+Ejemplo. ¿Qué características del estilo de vida son factores de riesgo de enfermedad cardiovascular ? Dada una muestra de pacientes a los que se mide la situación de fumador, dieta, ejercicio, consumo de alcohol, y estado de enfermedad cardiovascular, se puede generar un modelo utilizando las cuatro variables de estilo de vida para predecir la presencia o ausencia de enfermedad cardiovascular en una muestra de pacientes. El modelo puede utilizarse posteriormente para derivar estimaciones de la odds ratio para cada uno de los factores y así indicarle, por ejemplo, cuánto más probable es que los fumadores desarrollan una enfermedad cardiovascular frente a los no fumadores.
 
   
 
 Estadísticos. Casos totales, Casos seleccionados, Casos válidos. Para cada variable categórica: parámetro coding. Para cada paso: variables introducidas o eliminadas, historial de iteraciones, -2 log de la verosimilitud, bondad de ajuste, estadístico de bondad de ajuste de Hosmer-Lemeshow, chi-cuadrado del modelo ¡, chi-cuadrado de la mejora, tabla de clasificación, correlaciones entre las variables, gráfico de las probabilidades pronosticadas y los grupos observados, chi-cuadrado residual. Para las variables de la ecuación: coeficiente (B), error estándar de B, Estadístico de Wald, razón de las ventajas estimada (exp(B)), intervalo de confianza para exp(B), log de la verosimilitud si el término se ha eliminado del modelo. Para cada variable que no esté en la ecuación: estadístico de puntuación. Para cada caso: grupo observado, probabilidad pronosticada, grupo pronosticado, residuo, residuo estandarizado.
 
+  
+
 Métodos. Puede estimar modelos utilizando la entrada en bloque de las variables o cualquiera de los siguientes métodos por pasos: condicional hacia delante, LR hacia delante, Wald hacia delante, Condicional hacia atrás, LR hacia atrás o Wald hacia atrás.
+
+ 
 Regresión logística: Consideraciones sobre los datos
 
 Datos. La variable dependiente debe ser dicotómica. Las variables independientes pueden estar a nivel de intervalo o ser categóricas; si son categóricas, deben ser variables auxiliares o estar codificadas como indicadores (existe una opción en el procedimiento para codificar automáticamente las variables categóricas).
 
-**Código comentado** 
+  
 
+**Perceptrón multicapa**
+
+El clasificador de perceptrón multicapa (MLPC) es un clasificador basado en la red neuronal artificial de alimentación directa. MLPC consta de múltiples capas de nodos. Cada capa está completamente conectada a la siguiente capa en la red. Los nodos en la capa de entrada representan los datos de entrada. Todos los demás nodos asignan entradas a salidas mediante una combinación lineal de las entradas con los pesos w y sesgo del nodo y aplicando una función de activación. Esto se puede escribir en forma de matriz para MLPC con capas K + 1 de la siguiente manera:
+
+![](https://lh6.googleusercontent.com/wTFvhkehzxs1qp-ukeHFlZyL3sTumjhLVO2mnvqjsn_SNwKgv3plIHfmBYsysIUevfu_lr09k-QFmxDr6CEIbFMtJsIPMSqqU1ChFDFB15nEjugXhcIzk0yPqk4T-azZQn6b2256)
+
+Los nodos en las capas intermedias utilizan la función sigmoidea (logística):
+
+![](https://lh4.googleusercontent.com/frmmxJP0n11G5fUxn3kMRpyb9oFiavIBWr-e62cV2Kc59RdrXv68UXtiGRCM1welJ7zPPO0N0osplaz2CyUGCsDSFwuvcLdLcDReNJtCeyDO_NGdSFSEyalvLDLhBHYswXbkAEQb)
+
+Los nodos en la capa de salida utilizan la función softmax:
+
+![](https://lh3.googleusercontent.com/fJhoJMWFuWkrizJP0baXI5gDyv1fxBgwjPtHfc3gxEqR6ldRwkHm1--9Gih9QvTirkGLgoT1LrNzjl45iBPpJALVRNtDD1sr0t0L1aSZfuLiT9TUmLVQ4ISkXh7-KNLIsWPnW9Qx)
+
+El número de nodos N en la capa de salida corresponde al número de clases.MLPC emplea la propagación hacia atrás para aprender el modelo. Utilizamos la función de pérdida logística para la optimización y L-BFGS como rutina de optimización.
+
+**Implementación**
+
+
+Para su implementación se utilizó el lenguaje Scala con la librerías de Spark en su versión 2.4.4 y se utilizaron los datos del dataset “bank-full” en formato “.csv”, los cuales pueden ser consultados en la siguiente dirección:
+
+[https://github.com/joseomarvite/BigData/tree/Unidad_4/Evaluacion](https://github.com/joseomarvite/BigData/tree/Unidad_4/Evaluacion)
+
+  
+
+Spark, permite trabajar con Scala, que es una forma abreviada de SCalable LAnguage, se originó en 'École Polytechnique Fédérale de Lausanne' (EPFL), Suiza, en 2003, con el objetivo de lograr un lenguaje de alto rendimiento y altamente concurrente que combine la fuerza de los siguientes dos patrones de programación líderes en la plataforma Java Virtual Machine (JVM): [6]
+
+  
+
+• Programación orientada a objetos
+
+• programación funcional
+
+  
+
+API muy diferentes, pero algoritmos similares. Estas bibliotecas de aprendizaje automático heredan muchas de las consideraciones de rendimiento de las API RDD y Dataset en las que se basan, pero también tienen sus propias consideraciones. MLlib es la primera de las dos bibliotecas y está entrando en un modo de solo mantenimiento / corrección de errores.
+
+  
+
+Conjunto de datos
+
+  
+
+Los datos están relacionados con campañas de marketing directo de una institución bancaria portuguesa. Las campañas de marketing se basaron en llamadas telefónicas. A menudo, se requería más de un contacto con el mismo cliente para acceder si el producto (deposito bancario a plazo) estaría ('sí') o no ('no') suscrito.
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+Tomamos todos los ejemplos (41188) y 11 entradas, ordenadas por fecha (de Mayo de 2008 a noviembre de 2010).
+
+De los datos a trabajar, usamos dos categorías de la información proveída y tomamos los siguientes:
+
+  
+
+1.  Información bancaria del cliente
+    
+2.  age números
+    
+3.  job: valores categóricos convertidos a números
+    
+4.  marital: estado civil categórico convertido a números
+    
+5.  education: nivel de estudios categóricos convertido a números
+    
+6.  default: si cuenta con algún tipo de crédito, datos categóricos convertidos a números
+    
+7.  housing: si renta casa, numérico
+    
+8.  loan: si tiene algún crédito personal, numérico
+    
+
+  
+
+Información del cliente relacionada a la campaña actual y el último contacto
+
+  
+
+campaign: cuantas veces se ha contactado al cliente para la campaña actual
+
+days: cuántos días han pasado desde el último contacto de la campaña
+
+previous: cuantas veces se ha contactado al cliente anteriormente
+
+outcome: cómo han sido los contactos anteriores.
+
+  
+
+Decision Tree
+
+  
+
+Implementar el algoritmo Decision Tree en Spark con Scala primero necesitamos importar las librerías o paquetes que contienen las funciones necesarias para utilizar este algoritmo.
+
+El algoritmo necesita las características que se van a procesar para poder generar una predicción así que generamos un VectorAssembler que su funciones tomar conjuntos de datos y crear un vector que contenga los datos que a su vez es agregado a una nueva columna llamada features. Al final se transforma el vector generado con el dataframe creado.
+
+  
+
+Este algoritmo necesita tener indexados los datos antes de su procesamiento así que se genera un StringIndexer para transformar los label de tipo string a numérico y se ajustan a los datos indexados de igual forma se crea un vector indexer.
+
+  
+
+Se declara un arreglo, que contiene el 70% de los datos que será utilizado para entrenamiento y el 30% restante se utilizará para datos de pruebas. Después se declara la función de Decision Tree con las columnas label y features.
+
+  
+
+Se indexa la columna prediction con las etiquetas indexadas. Se crea una pipeline con las labels indexadas ,features indexadas, la instancia del algoritmo y la prediction indexada. Se genera un modelo con los datos de entrenamiento procesados.
+
+  
+
+Una vez que el modelo esté procesado con los datos de entrenamiento se generan las predicciones con los datos de prueba. Se imprimen 5 predicciones con sus label y features.
+
+La variable evaluator guarda la precisión de las predicciones creadas y después se imprime la precisión que tuvo este algoritmo y muestra el error obtenido.
+
+La variable treeModel muestra de forma gráfica los árboles de decisión creados a partir de los datos de prueba.
+
+  
+
+Multilayer Perceptron Classifier
+
+Implementar el algoritmo Multilayer Perceptron Classifier en Spark con Scala primero necesitamos importar las librerías o paquetes que contienen las funciones necesarias para utilizar este algoritmo.
+
+  
+
+La primera línea importa un reductor de errores y la tercera línea declara una Sesión de Spark.
+
+  
+  
+
+El algoritmo necesita las características que se van a procesar para poder generar una predicción así que generamos un VectorAssembler que su funciones tomar conjuntos de datos y crear un vector que contenga los datos que a su vez es agregado a una nueva columna llamada features. Al final se transforma el vector generado con el dataframe creado. Se renombra la columna Y con el nombre label, se genera un nuevo conjunto de datos seleccionado las columnas label y features.
+
+  
+
+Se declara un arreglo que contiene el 70% de los datos que será utilizado para entrenamiento y el 30% restante se utilizará para datos de pruebas tomados de los datos indexados aleatoriamente.
+
+Se genera la configuración de las layers del algoritmo y se inicializa el trainer del MLPC agregando la configuración de las layers y el máximo de iteraciones.
+
+  
+
+Se procesa el modelo con los datos de entrenamiento y después se guardan los resultados utilizando los datos de pruebas que a su vez generan las predicciones. Se inicializa el evaluator que estima la precisión que se tuvo con este algoritmo utilizando el data frame creado con los datos indexados.
+
+  
+
+Logistic Regression
+
+  
+
+Implementar el algoritmo Logistic Regression en Spark con Scala primero necesitamos importar las librerías o paquetes que contienen las funciones necesarias para utilizar este algoritmo.
+
+El algoritmo necesita las características que se van a procesar para poder generar una predicción así que generamos un VectorAssembler que su funciones tomar conjuntos de datos y crear un vector que contenga los datos que a su vez es agregado a una nueva columna llamada features. Al final se transforma el vector generado con el dataframe creado. Se renombra la columna Y con el nombre label, se genera un nuevo conjunto de datos seleccionado las columnas label y features.
+
+  
+
+Se declara un arreglo que contiene el 70% de los datos que será utilizado para entrenamiento y el 30% restante se utilizará para datos de pruebas tomados de los datos indexados aleatoriamente.
+
+  
+
+Se genera inicializa el modelo de Logistic Regression con el máximo de iteraciones.
+
+Se procesa el modelo con los datos de entrenamiento y después se guardan los resultados utilizando los datos de pruebas que a su vez generan las predicciones. Se inicializa el evaluator que estima la precisión que se tuvo con este algoritmo utilizando el data frame creado con los datos indexados.
+
+Se imprime la matriz de confusión generada a partir de las predicciones.
+**Códigos**
+
+**Arbol de decision**
 ```scala
-//Importamos librerias necesarias con las que vamos a trabajar
-import org.apache.spark.ml.feature.{VectorAssembler, StringIndexer, VectorIndexer, OneHotEncoder}
-import org.apache.spark.mllib.evaluation.MulticlassMetrics
-import org.apache.spark.ml.classification.LogisticRegression
+//Importamos las librerias necesarias con las que vamos a trabajar
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.mllib.util.MLUtils
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.DateType
-import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.ml.Pipeline
+import org.apache.spark.sql.{SparkSession, SQLContext}
+import org.apache.spark.ml.feature.VectorIndexer
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.Transformer
+import org.apache.spark.mllib.tree.model.DecisionTreeModel
+import org.apache.spark.ml.{Pipeline, PipelineModel}
+import org.apache.spark.ml.feature.StringIndexer
+import org.apache.spark.mllib.tree.DecisionTree
+import org.apache.spark.mllib.tree.model.DecisionTreeModel
+import org.apache.spark.mllib.util.MLUtils
+import org.apache.spark.ml.classification.DecisionTreeClassifier
+import org.apache.spark.ml.feature.IndexToString
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import org.apache.spark.ml.classification.DecisionTreeClassificationModel
 import org.apache.log4j._
-//Elimina varios avisos de warnings/errores inecesarios
+//Quita los warnings
 Logger.getLogger("org").setLevel(Level.ERROR)
+//Creamos una sesion de spark y cargamos los datos del CSV en un datraframe
 val spark = SparkSession.builder().getOrCreate()
-//Creacion del dataframe para cargar el archivo csv
-val data = spark.read.option("header","true").option("inferSchema", "true").format("csv").load("advertising.csv")
-//Imprimimos el esquema del dataframe para visualizarlo
-data.printSchema()
-//Imprime la primera linea de datos del csv
-data.head(1)
-data.select("Clicked on Ad").show()
-val timedata = data.withColumn("Hour",hour(data("Timestamp")))
-//Tomamos nuestros datos mas relevantes a una variables y tomamos clicked on ad como nuestra label
-val logregdataall = timedata.select(data("Clicked on Ad").as("label"),$"Daily Time Spent on Site",$"Age",$"Area Income",$"Daily Internet Usage",$"Hour",$"Male")
-val feature_data = data.select($"Daily Time Spent on Site",$"Age",$"Area Income",$"Daily Internet Usage",$"Timestamp",$"Male")
-val logregdataal = (data.withColumn("Hour",hour(data("Timestamp")))
-val logregdataal = logregdataall.na.drop()
-//Generamos nuestro vector de ensamble en un arrengo donde tomamos nuestros features
-val assembler = new VectorAssembler().setInputCols(Array("Daily Time Spent on Site","Age","Area Income","Daily Internet Usage","Hour","Male")).setOutputCol("features")
-//Utilizamos la regresion lineal en nuestros datos con un 70% y 30% de datos.
-val Array(training, test) = logregdataall.randomSplit(Array(0.7, 0.3), seed = 12345)
-val lr = new LogisticRegression()
-val pipeline = new Pipeline().setStages(Array(assembler,lr))
-//Creacion del modelo
-val model = pipeline.fit(training)
-//resultados de las pruebas con nuestro modelo
-val results = model.transform(test)
-val predictionAndLabels = results.select($"prediction",$"label").as[(Double, Double)].rdd
-val metrics = new MulticlassMetrics(predictionAndLabels)
-//Imprimimos nuestras metricas y la accuaricy de los calculos
-println("Confusion matrix:")
-println(metrics.confusionMatrix)
-metrics.accuracy
+val df = spark.read.option("header","true").option("inferSchema","true").option("delimiter",";").format("csv").load("bank-full.csv")
+//Desblegamos los tipos de datos.
+df.printSchema()
+df.show(1)
+//Cambiamos la columna y por una con datos binarios.
+val change1 = df.withColumn("y",when(col("y").equalTo("yes"),1).otherwise(col("y")))
+val change2 = change1.withColumn("y",when(col("y").equalTo("no"),2).otherwise(col("y")))
+val newcolumn = change2.withColumn("y",'y.cast("Int"))
+//Desplegamos la nueva columna
+newcolumn.show(1)
+//Generamos la tabla features
+val assembler = new VectorAssembler().setInputCols(Array("balance","day","duration","pdays","previous")).setOutputCol("features")
+val fea = assembler.transform(newcolumn)
+//Mostramos la nueva columna
+fea.show(1)
+//Cambiamos la columna y a la columna label
+val cambio = fea.withColumnRenamed("y", "label")
+val feat = cambio.select("label","features")
+feat.show(1)
+//DecisionTree
+val labelIndexer = new StringIndexer().setInputCol("label").setOutputCol("indexedLabel").fit(feat)
+// features con mas de 4 valores distinctivos son tomados como continuos
+val featureIndexer = new VectorIndexer().setInputCol("features").setOutputCol("indexedFeatures").setMaxCategories(4)
+//Division de los datos entre 70% y 30% en un arreglo
+val Array(trainingData, testData) = feat.randomSplit(Array(0.7, 0.3))
+//Creamos un objeto DecisionTree
+val dt = new DecisionTreeClassifier().setLabelCol("indexedLabel").setFeaturesCol("indexedFeatures")
+//Rama de prediccion
+val labelConverter = new IndexToString().setInputCol("prediction").setOutputCol("predictedLabel").setLabels(labelIndexer.labels)
+//Juntamos los datos en un pipeline
+val pipeline = new Pipeline().setStages(Array(labelIndexer, featureIndexer, dt, labelConverter))
+//Create a model of the entraining
+val model = pipeline.fit(trainingData)
+//Transformacion de datos en el modelo
+val predictions = model.transform(testData)
+//Desplegamos predicciones
+predictions.select("predictedLabel", "label", "features").show(5)
+//Evaluamos la exactitud
+val evaluator = new MulticlassClassificationEvaluator().setLabelCol("indexedLabel").setPredictionCol("prediction").setMetricName("accuracy")
+val accuracy = evaluator.evaluate(predictions)
+println(s"Test Error = ${(1.0 - accuracy)}")
+val treeModel = model.stages(2).asInstanceOf[DecisionTreeClassificationModel]
+println(s"Learned classification tree model:\n  ${treeModel.toDebugString}")
 ```
 
-**Practica 2**
-
-**Introducción** 
-
-La siguiente práctica es el resultado de la exposición 2 impartida por mis compañeros en la unidad 2 de la materia de datos masivos.
-
-En este presente documento se deriva de la explicación de diferentes clases en el Instituto Tecnológico de Tijuana de la materia Minería de Datos lo cual pude desarrollar mis habilidades y aplicar mis conocimientos aprendidos durante el periodo
-
-  
-
-**Explicación**
-
-K-means es un algoritmo de clasificación no supervisada (clusterización) que agrupa objetos en k grupos basándose en sus características. El agrupamiento se realiza minimizando la suma de distancias entre cada objeto y el centroide de su grupo o cluster. Se suele usar la distancia cuadrática.
-
-  
-
-El algoritmo consta de tres pasos:
-
-  
-
-Inicialización: una vez escogido el número de grupos, k, se establecen k centroides en el espacio de los datos, por ejemplo, escogiendo aleatoriamente.
-
-Asignación objetos a los centroides: cada objeto de los datos es asignado a su centroide más cercano.
-
-Actualización centroides: se actualiza la posición del centroide de cada grupo tomando como nuevo centroide la posición del promedio de los objetos pertenecientes a dicho grupo.
-
-Se repiten los pasos 2 y 3 hasta que los centroides no se mueven, o se mueven por debajo de una distancia umbral en cada paso.
-
-  
-
-El algoritmo k-means resuelve un problema de optimización, siendo la función a optimizar (minimizar) la suma de las distancias cuadráticas de cada objeto al centroide de su cluster.
-
-  
-
-Los objetos se representan con vectores reales de d dimensiones (x1,x2,…,xn) y el algoritmo k-means construye k grupos donde se minimiza la suma de distancias de los objetos, dentro de cada grupo S={S1,S2,…,Sk} , a su centroide. El problema se puede formular de la siguiente forma:
-
-  
-
-minSE(μi)=minS∑i=1k∑xj∈Si∥xj−μi∥2(1)
-
-  
-  
-  
-  
-
-donde S es el conjunto de datos cuyos elementos son los objetos xj representados por vectores, donde cada uno de sus elementos representa una característica o atributo. Tendremos k grupos o clusters con su correspondiente centroide μi .
-
-  
-
-En cada actualización de los centroides, desde el punto de vista matemático, imponemos la condición necesaria de extremo a la función E(μi) que, para la función cuadrática (1) es:
-
-  
-
-∂E∂μi=0⟹μ(t+1)i=1∣∣S(t)i∣∣∑xj∈S(t)ixj
-
-  
-  
-
-y se toma el promedio de los elementos de cada grupo como nuevo centroide.
-
-  
-
-Las principales ventajas del método k-means son que es un método sencillo y rápido. Pero es necesario decidir el valor de k y el resultado final depende de la inicialización de los centroides. En principio no converge al mínimo global sino a un mínimo local.
-
-  
-
-Ejemplo de de movimiento de centroides:
-
-  
-
-![](https://lh6.googleusercontent.com/pfMiXoGqUH9dQ0DPZv0jqIGI-63MtaeEgNaST0q_OsdcRAYc00HsREMlM8OSj2seeOrX62azsL8vR3Wiv0zAeQfaYuJvM8gymjuO8MKVy9aeClCsZA71fTM3LvOR9FJfVR-1tsJ0)
-
-**Código comentado**
-
+**Regresión Logística**
 ```scala
-// Se importan las librerias necesarias para el trabajo de Kmeans
-// Se crea un sesion en Spark
+//Importamos las librerias necesarias con las que vamos a trabajar
+import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.mllib.util.MLUtils
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.DateType
+import org.apache.spark.sql.{SparkSession, SQLContext}
+import org.apache.spark.ml.feature.VectorIndexer
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.Transformer
+import org.apache.spark.ml.classification.LinearSVC
+import org.apache.spark.ml.classification.LogisticRegression
 import org.apache.log4j._
+//Quita los warnings
 Logger.getLogger("org").setLevel(Level.ERROR)
+//Creamos una sesion de spark y cargamos los datos del CSV en un datraframe
 val spark = SparkSession.builder().getOrCreate()
-import org.apache.spark.ml.clustering.KMeans
-// Se cargan los datos en la variable "dataset"
-val dataset = spark.read.format("libsvm").load("sample_kmeans_data.txt")
-// Se entra el modelo de K means y a la vez se especifica el valor de K
-val kmeans = new KMeans().setK(2).setSeed(1L)
-// Se entrena el modelo con los datos de la variable "dataset"
-val model = kmeans.fit(dataset)
-// Se evalua el cluster calculando en los errores cuadraticos
-val WSSE = model.computeCost(dataset)
-println(s"Within set sum of Squared Errors = $WSSE")
-// Se muestran el movimiento de los centroides
-println("Cluster Centers: ")
-model.clusterCenters.foreach(println)
+val df = spark.read.option("header","true").option("inferSchema","true").option("delimiter",";").format("csv").load("bank-full.csv")
+//Desblegamos los tipos de datos.
+df.printSchema()
+df.show(1)
+//Cambiamos la columna y por una con datos binarios.
+val change1 = df.withColumn("y",when(col("y").equalTo("yes"),1).otherwise(col("y")))
+val change2 = change1.withColumn("y",when(col("y").equalTo("no"),2).otherwise(col("y")))
+val newcolumn = change2.withColumn("y",'y.cast("Int"))
+//Desplegamos la nueva columna
+newcolumn.show(1)
+//Generamos la tabla features
+val assembler = new VectorAssembler().setInputCols(Array("balance","day","duration","pdays","previous")).setOutputCol("features")
+val fea = assembler.transform(newcolumn)
+//Mostramos la nueva columna
+fea.show(1)
+//Cambiamos la columna y a la columna label
+val cambio = fea.withColumnRenamed("y", "label")
+val feat = cambio.select("label","features")
+feat.show(1)
+//Logistic Regresion
+val logistic = new LogisticRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8)
+// fit del modelo
+val logisticModel = logistic.fit(feat)
+//Impresion de los coegicientes y de la intercepcion
+println(s"Coefficients: ${logisticModel.coefficients} Intercept: ${logisticModel.intercept}")
+val logisticMult = new LogisticRegression().setMaxIter(10).setRegParam(0.3).setElasticNetParam(0.8).setFamily("multinomial")
+val logisticMultModel = logisticMult.fit(feat)
+println(s"Multinomial coefficients: ${logisticMultModel.coefficientMatrix}")
+println(s"Multinomial intercepts: ${logisticMultModel.interceptVector}")
+```
+**Perceptrón multicapa**
+```scala
+//Importamos las librerias necesarias con las que vamos a trabajar
+import org.apache.spark.mllib.classification.{SVMModel, SVMWithSGD}
+import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
+import org.apache.spark.mllib.util.MLUtils
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.DateType
+import org.apache.spark.sql.{SparkSession, SQLContext}
+import org.apache.spark.ml.feature.VectorIndexer
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.ml.Transformer
+import org.apache.spark.ml.classification.LinearSVC
+import org.apache.spark.ml.classification.LogisticRegression
+import org.apache.spark.ml.classification.MultilayerPerceptronClassifier
+import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
+import org.apache.log4j._
+//Quita los warnings
+Logger.getLogger("org").setLevel(Level.ERROR)
+//Creamos una sesion de spark y cargamos los datos del CSV en un datraframe
+val spark = SparkSession.builder().getOrCreate()
+val df = spark.read.option("header","true").option("inferSchema","true").option("delimiter",";").format("csv").load("bank-full.csv")
+//Desblegamos los tipos de datos.
+df.printSchema()
+df.show(1)
+//Cambiamos la columna y por una con datos binarios.
+val change1 = df.withColumn("y",when(col("y").equalTo("yes"),1).otherwise(col("y")))
+val change2 = change1.withColumn("y",when(col("y").equalTo("no"),2).otherwise(col("y")))
+val newcolumn = change2.withColumn("y",'y.cast("Int"))
+//Desplegamos la nueva columna
+newcolumn.show(1)
+//Generamos la tabla features
+val assembler = new VectorAssembler().setInputCols(Array("balance","day","duration","pdays","previous")).setOutputCol("features")
+val fea = assembler.transform(newcolumn)
+//Mostramos la nueva columna
+fea.show(1)
+//Cambiamos la columna y a la columna label
+val cambio = fea.withColumnRenamed("y", "label")
+val feat = cambio.select("label","features")
+feat.show(1)
+//Multilayer perceptron
+//Dividimos los datos en un arreglo en partes de 70% y 30%
+val split = feat.randomSplit(Array(0.6, 0.4), seed = 1234L)
+val train = split(0)
+val test = split(1)
+// Especificamos las capas para la red neuronal
+//De entrada 5 por el numero de datos de las features
+//2 capas ocultas de dos neuronas
+//La salida de 4 asi lo marca las clases
+val layers = Array[Int](5, 2, 2, 4)
+//Creamos el entrenador con sus parametros
+val trainer = new MultilayerPerceptronClassifier().setLayers(layers).setBlockSize(128).setSeed(1234L).setMaxIter(100)
+//Entrenamos el modelo
+val model = trainer.fit(train)
+//Imprimimos la exactitud
+val result = model.transform(test)
+val predictionAndLabels = result.select("prediction", "label")
+val evaluator = new MulticlassClassificationEvaluator().setMetricName("accuracy")
+println(s"Test set accuracy = ${evaluator.evaluate(predictionAndLabels)}")
 ```
 
+
+**Resultados**
+
+**![](https://lh6.googleusercontent.com/J0lY9DUKc9rfTtpDDgh9T0jMwAlPQhOu1MQ7eX5Nm5ooLIlp1m-eRr3czfVUW-iIIRK8vGjAm1PIATgxgJ4ut24FGuk8t4YPaPe2a2KhaZS-iE7T5HpHF8sz2xiImEFOdsmLk43X)**
+**![](https://lh5.googleusercontent.com/FKKvKDbEDVbp-BAHTzoBiElsC1DX3HZg-VMrw9AiR8sZJ1s1peMGeGAw6Of7oaIzt31a_SU8eSXr7iZX_Dp-p_oEsS1Snv6uNHaoFGaxHCI0RYESyFKCtzOukwJU0edN-2L-iW-P)**
+
+**Conclusión**
+
+Podemos concluir en base a los resultados obtenidos que al algoritmo de “Árboles de decisión” es más efectivo debido a la exactitud obtenida, también cabe destacar que los datos deben de tener sentido para que el algoritmo pueda funcionar correctamente.
+
+Es importante recordar que los datos son tomados de la siguiente forma:
+```scala
+
+val Array(trainingData, testData) = feat.randomSplit(Array(0.7, 0.3))
 ```
+
+“randomSplit” nos permite partir los datos de forma aleatoria, esto quiere decir que si compilamos el algoritmo más de una vez, existe la posibilidad que la exactitud aumente o disminuya ya que los datos fueron tomados de forma aleatoria, hay una gran posibilidad que en el 70% de los datos que se van a la variable “trainingData” todos tengan sentido al momentos de procesarlos, pero si en la variable “”testData” (30%) es todo lo contrario la exactitud disminuye de forma notable.
+
+El resultado de “Árboles de decisión” o el despliegue del árbol está formulado en las condicionales “if and else” que nos permite graficar de forma sencilla mostrando la predicción en cada hoja terminal, esta sencillez hace que cualquier persona con nociones basicas de matematicas pueda entenderlo y explicarlo.
+Los árboles de decisión son de gran herramienta para instituciones medicinales,
+bancarios, administrativos, y sobre todo para la toma de decisiones.
+Por ejemplo, en Colombia estos algoritmos tienen gran relevancia en bancos, donde hacen un análisis previo para determinar el riesgo crediticio cuando una persona física o moral hace uso de un préstamo mostrando probabilidades (Naive Bayes), ventajas y desventajas.
+
